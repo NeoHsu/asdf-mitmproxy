@@ -19,11 +19,6 @@ if [ -n "${GITHUB_API_TOKEN:-}" ]; then
   curl_opts=("${curl_opts[@]}" -H "Authorization: token $GITHUB_API_TOKEN")
 fi
 
-sort_versions() {
-  sed 'h; s/[+-]/./g; s/.p\([[:digit:]]\)/.z\1/; s/$/.z/; G; s/\n/ /' |
-    LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
-}
-
 list_github_tags() {
   git ls-remote --tags --refs "$GH_REPO" |
     grep -o 'refs/tags/.*' | cut -d/ -f3- |
@@ -31,13 +26,22 @@ list_github_tags() {
 }
 
 get_platform() {
+  local version="$1"
   local platform="linux"
+  local arch="x86_64" # Always default to "x86_64"
 
   case "$(uname | tr '[:upper:]' '[:lower:]')" in
-    darwin) platform="osx" ;;
+  darwin) platform="macos" ;;
+  esac
+  case "$(uname -m)" in
+  arm*) arch="arm64" ;;
   esac
 
-  echo -n $platform
+  if [[ "$(printf '%s\n' "$version" "10.1.2" | sort -Vr | head -n1)" == "10.1.2" ]]; then
+    arch="" # mitmproxy before 10.1.2 do not have arch in the filename
+  fi
+
+  echo -n "$platform-$arch" | sed 's/-$//g'
 }
 
 list_all_versions() {
@@ -49,12 +53,12 @@ download_release() {
   local version filename url
   version="$1"
   filename="$2"
-  platform=$(get_platform)
+  platform=$(get_platform $version)
 
   # mitmproxy release URL
-  url="https://snapshots.mitmproxy.org/${version}/mitmproxy-${version}-${platform}.tar.gz"
+  url="https://downloads.mitmproxy.org/${version}/mitmproxy-${version}-${platform}.tar.gz"
 
-  echo "* Downloading $TOOL_NAME release $version..."
+  echo "* Downloading $TOOL_NAME release $version for $platform..."
   curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
 }
 
