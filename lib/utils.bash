@@ -52,7 +52,7 @@ download_release() {
   platform=$(get_platform)
 
   # mitmproxy release URL
-  url="https://snapshots.mitmproxy.org/${version}/mitmproxy-${version}-${platform}.tar.gz"
+  url="https://downloads.mitmproxy.org/${version}/mitmproxy-${version}-${platform}.tar.gz"
 
   echo "* Downloading $TOOL_NAME release $version..."
   curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -71,7 +71,7 @@ install_version() {
     mkdir -p "$install_path/bin"
     cp -R "$ASDF_DOWNLOAD_PATH/." "$install_path/bin"
 
-    # Asert mitmproxy executable exists.
+    # Assert mitmproxy executable exists.
     local tool_cmd
     tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
     test -x "$install_path/bin/$tool_cmd" || fail "Expected $install_path/bin/$tool_cmd to be executable."
